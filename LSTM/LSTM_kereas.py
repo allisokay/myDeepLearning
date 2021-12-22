@@ -102,12 +102,12 @@ def series_to_supervised():
 
 def train_test(data):
     """
-     训练集和测试机划分
+     第一次修改：训练集、验证集和测试机划分=4:1
     :param data:
     :return:
     """
     values = data.values
-    n_train_hours = 365 * 24
+    n_train_hours = 4*365 * 24
     train = values[:n_train_hours, :]
     pd.DataFrame(train,columns=['污染情况', '露点温度', '气温', '气压', '风向', '风速', '雪量', '雨量',"下一个时刻的污染情况"]).to_csv("../assets/BeiJingWeather(2010-2014)/train.csv",index=False)
     test = values[n_train_hours:, :]
@@ -130,12 +130,14 @@ def fit_network(train_X, train_y, test_X, test_y, scaler):
     model.add(Dense(1))
     model.compile(loss='mae', optimizer='adam')
     #  verbose：日志显示（0：不输出日志信息 *1：输出进度条，2：每个epoch输出一行记录）
-    history = model.fit(train_X, train_y, verbose=2, epochs=50, batch_size=72, shuffle=False)
+    #  从训练集中去1%为验证集不加以训练
+    history = model.fit(train_X, train_y,validation_split=0.1, verbose=2, epochs=50, batch_size=72, shuffle=False)
     pyplot.plot(history.history['loss'], label='train')
+    pyplot.plot(history.history['val_loss'], label='validation')
     pyplot.legend()
     pyplot.show()
     # 准确率预测
-    yhat = model.predict(test_X, verbose=1)  # 输出结果预测
+    yhat = model.predict(test_X, verbose=2)  # 输出结果预测
     test_X = test_X.reshape((test_X.shape[0], test_X.shape[2]))
     inv_yhat = np.concatenate((yhat, test_X[:, 1:]), axis=1)
     inv_yhat = scaler.inverse_transform(inv_yhat)
