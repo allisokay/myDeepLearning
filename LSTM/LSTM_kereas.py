@@ -124,19 +124,20 @@ def train_test(data):
 def fit_network(train_X, train_y, test_X, test_y, scaler):
     model = Sequential()
     # 隐藏层有50个神经元
-    model.add(LSTM(units=50, input_shape=(train_X.shape[1], train_X.shape[2])))  # 输出神经元大小50
+    model.add(LSTM(units=150, input_shape=(train_X.shape[1], train_X.shape[2])))  # 输出神经元大小50
     # 输出层1个神经元
+    # model.add(Dense(10))
     model.add(Dense(1))
     model.compile(loss='mae', optimizer='adam')
     #  verbose：日志显示（0：不输出日志信息 *1：输出进度条，2：每个epoch输出一行记录）
-    #  从训练集中去1%为验证集不加以训练
-    history = model.fit(train_X, train_y,validation_split=0.1, verbose=2, epochs=50, batch_size=72, shuffle=False)
+    #  从训练集中取1%为验证集不加以训练
+    history = model.fit(train_X, train_y,validation_split=0.1, verbose=2, epochs=200, batch_size=72, shuffle=False)
     pyplot.plot(history.history['loss'], label='train')
     pyplot.plot(history.history['val_loss'], label='validation')
     pyplot.legend()
     pyplot.show()
     # 准确率预测
-    yhat = model.predict(test_X, verbose=2)  # 输出结果预测
+    yhat = model.predict(test_X, verbose=0)  # 输出结果预测
     test_X = test_X.reshape((test_X.shape[0], test_X.shape[2]))
     inv_yhat = np.concatenate((yhat, test_X[:, 1:]), axis=1)
     inv_yhat = scaler.inverse_transform(inv_yhat)
