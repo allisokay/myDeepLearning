@@ -25,7 +25,6 @@ from sklearn.metrics import mean_squared_error
 from tensorflow.python.keras.models import Sequential
 from tensorflow.python.keras.layers import LSTM, Dense
 
-
 def parse(x):
     """
     format date
@@ -125,7 +124,7 @@ def train_test(data):
 def fit_network(train_X, train_y, test_X, test_y, scaler):
     model = Sequential()
     # 隐藏层有50个神经元
-    model.add(LSTM(units=50, input_shape=(train_X.shape[1], train_X.shape[2]), ))  # 输出神经元大小50
+    model.add(LSTM(units=50, input_shape=(train_X.shape[1], train_X.shape[2])))  # 输出神经元大小50
     # 输出层1个神经元
     model.add(Dense(1))
     model.compile(loss='mae', optimizer='adam')
