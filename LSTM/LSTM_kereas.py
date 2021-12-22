@@ -12,6 +12,7 @@ from util.TFUitl import *
 import pandas as pd
 import math
 import numpy as np
+
 pd.set_option('display.max_columns', None)
 # 显示所有行
 pd.set_option('display.max_rows', None)
@@ -22,7 +23,8 @@ from matplotlib import pyplot
 from sklearn.preprocessing import LabelEncoder, MinMaxScaler
 from sklearn.metrics import mean_squared_error
 from tensorflow.python.keras.models import Sequential
-from tensorflow.python.keras.layers import LSTM,Dense
+from tensorflow.python.keras.layers import LSTM, Dense
+
 
 def parse(x):
     """
@@ -75,7 +77,7 @@ def series_to_supervised():
     values = pd.read_csv("../assets/BeiJingWeather(2010-2014)/clean.csv", index_col=0, header=0).values
     # 整合编码方向
     encoder = LabelEncoder()
-    # LabelEncoder.fit_transform:将风速（wnd_spd）特征转换为整数，所有标签都有对应的整数
+    # LabelEncoder.fit_transform:将风速（wnd_spd）特征转换为整数，每个特征值都有对应的整数
     values[:, 4] = encoder.fit_transform(values[:, 4])
     values = values.astype('float32')
     scaler = MinMaxScaler(feature_range=(0, 1))  # 特征标准化
@@ -105,44 +107,46 @@ def train_test(data):
     :return:
     """
     values = data.values
-    n_train_hours = 365*24
-    train = values[:n_train_hours,:]
-    test = values[n_train_hours:,:]
-     # 输入和输出划分
-    train_X,train_y = train[:,:-1],train[:,-1]
-    test_X,test_y = test[:,:-1],test[:,-1]
+    n_train_hours = 365 * 24
+    train = values[:n_train_hours, :]
+    pd.DataFrame(train,columns=['污染情况', '露点温度', '气温', '气压', '风向', '风速', '雪量', '雨量',"下一个时刻的污染情况"]).to_csv("../assets/BeiJingWeather(2010-2014)/train.csv",index=False)
+    test = values[n_train_hours:, :]
+    pd.DataFrame(test,columns=['污染情况', '露点温度', '气温', '气压', '风向', '风速', '雪量', '雨量',"下一个时刻的污染情况"]).to_csv("../assets/BeiJingWeather(2010-2014)/test.csv",index=False)
+    # 输入和输出划分
+    train_X, train_y = train[:, :-1], train[:, -1]
+    test_X, test_y = test[:, :-1], test[:, -1]
     # 将形状转为为3维【样本数，时间点，特征】
-    train_X = train_X.reshape((train_X.shape[0],1,train_X.shape[1]))
+    train_X = train_X.reshape((train_X.shape[0], 1, train_X.shape[1]))
     test_X = test_X.reshape((test_X.shape[0], 1, test_X.shape[1]))
     print(train_X.shape, train_y.shape, test_X.shape, test_y.shape)
     return train_X, train_y, test_X, test_y
 
 
-def fit_network(train_X, train_y, test_X, test_y,scaler):
+def fit_network(train_X, train_y, test_X, test_y, scaler):
     model = Sequential()
     # 隐藏层有50个神经元
-    model.add(LSTM(50,input_shape=(train_X.shape[1],train_X.shape[2]),))
+    model.add(LSTM(units=50, input_shape=(train_X.shape[1], train_X.shape[2]), ))  # 输出神经元大小50
     # 输出层1个神经元
     model.add(Dense(1))
-    model.compile(loss='mae',optimizer='adam')
-    # 投入网络 history = model.fit(train_X,train_y,epochs=50,batch_size=72,validation_data=(test_X,test_y),verbose=2,
-    # shuffle=False)
-    history = model.fit(train_X,train_y,epochs=50,batch_size=72,verbose=2,shuffle=False)
-    pyplot.plot(history.history['loss'],label='train')
+    model.compile(loss='mae', optimizer='adam')
+    #  verbose：日志显示（0：不输出日志信息 *1：输出进度条，2：每个epoch输出一行记录）
+    history = model.fit(train_X, train_y, verbose=2, epochs=50, batch_size=72, shuffle=False)
+    pyplot.plot(history.history['loss'], label='train')
     pyplot.legend()
     pyplot.show()
     # 准确率预测
-    yhat = model.predict(test_X)
-    test_X = test_X.reshape((test_X.shape[0],test_X.shape[2]))
-    inv_yhat = np.concatenate((yhat,test_X[:,1:]),axis=1)
+    yhat = model.predict(test_X, verbose=1)  # 输出结果预测
+    test_X = test_X.reshape((test_X.shape[0], test_X.shape[2]))
+    inv_yhat = np.concatenate((yhat, test_X[:, 1:]), axis=1)
     inv_yhat = scaler.inverse_transform(inv_yhat)
-    inv_yhat = inv_yhat[:,0]
-    # 实际值转换
+    inv_yhat = inv_yhat[:, 0]
+    # 转换为实际值
     test_y = test_y.reshape((len(test_y), 1))
     inv_y = np.concatenate((test_y, test_X[:, 1:]), axis=1)
-    inv_y = scaler.inverse_transform(test_X)
-    inv_y = inv_y[:,0]
-    rmse = math.sqrt(mean_squared_error(inv_y[1:], inv_yhat[:-1]))
+    inv_y = scaler.inverse_transform(inv_y)
+    inv_y = inv_y[:, 0]
+    # rmse = math.sqrt(mean_squared_error(inv_y[1:], inv_yhat[:-1]))
+    rmse = math.sqrt(mean_squared_error(inv_y, inv_yhat))
     print('Test RMSE: %.3f' % rmse)
 
 
@@ -150,6 +154,6 @@ if __name__ == '__main__':
     # draw_data() # 数据集展示
     reframed, scaler = series_to_supervised()  # 将序列数据变成有监督数据
     # 划分训练集和测试集,一年数据为训练集，四年数据为测试集
-    train_X,train_y ,test_X,test_Y = train_test(reframed)
+    train_X, train_y, test_X, test_Y = train_test(reframed)
     # 搭建LSTM模型
-    fit_network(train_X,train_y ,test_X,test_Y,scaler)
+    fit_network(train_X, train_y, test_X, test_Y, scaler)
