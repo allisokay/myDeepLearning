@@ -29,6 +29,7 @@ def use_add_image():
     writer.add_image("train(add_image)",img_array,1,dataformats="HWC")  # 参数变量需要为张量、numpy数组,1代表的时步骤
     writer.close()
 
+
 if __name__ == '__main__':
     use_add_scaler()
     use_add_image()
