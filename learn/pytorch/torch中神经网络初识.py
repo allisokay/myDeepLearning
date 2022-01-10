@@ -8,7 +8,7 @@
 # torch中的神经网络初识
 """
 import torch
-from torch import nn,functional as F
+from torch import nn
 
 class network(nn.Module):
     def __init__(self):
