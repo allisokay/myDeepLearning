@@ -38,13 +38,15 @@ class network(torch.nn.Module):
 
 
 if __name__ == '__main__':
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     writer = SummaryWriter("../../log/writer.add_graph图形查看")
 
     # cifar10数据集的使用
     cifar10_train_dataset = torchvision.datasets.CIFAR10(root="G:/projects/PycharmProjects/Dataset/general/",train=True,transform=torchvision.transforms.ToTensor(),download=False)
-    cifar10_loader = DataLoader(dataset=cifar10_train_dataset,batch_size=64,shuffle=True,num_workers=0,drop_last=False)
+    cifar10_loader = DataLoader(dataset=cifar10_train_dataset,batch_size=64,shuffle=True,num_workers=0,drop_last=True)
 
     model = network()
+    model.to(device)
     cross_loss_func = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(params=model.parameters(),lr=0.01)
 
@@ -52,9 +54,11 @@ if __name__ == '__main__':
         train_cross_epoch_loss = 0.0
         for data in cifar10_loader:
             x ,y = data
+            x = x.to(device)
+            y = y.to(device)
             output = model(x)
             writer.add_graph(model,x)
-            output = torch.reshape(output,(64,10)) # 样本数量64个，类别10类
+            output = torch.reshape(output,[64,10]) # 样本数量64个，类别10类
             loss=cross_loss_func(output,y)
             optimizer.zero_grad()
             loss.backward()
