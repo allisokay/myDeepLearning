@@ -21,8 +21,8 @@ def load_data(data_path="G:/projects/PycharmProjects/Dataset/general/"):
     cifar10_train_dataset =  torchvision.datasets.CIFAR10(root=data_path,train=True,transform=torchvision.transforms.ToTensor())
     cifar10_test_dataset =  torchvision.datasets.CIFAR10(root=data_path,train=False,transform=torchvision.transforms.ToTensor())
     print(f"训练集长度 :{len(cifar10_train_dataset)},测试集长度 :{len(cifar10_test_dataset)}")
-    train_dataset_loader = DataLoader(dataset=cifar10_train_dataset,batch_size=36,shuffle=True,num_workers=0)
-    test_dataset_loader = DataLoader(dataset=cifar10_test_dataset,batch_size=9)
+    train_dataset_loader = DataLoader(dataset=cifar10_train_dataset,batch_size=64,shuffle=True,num_workers=0)
+    test_dataset_loader = DataLoader(dataset=cifar10_test_dataset,batch_size=36)
     print("------数据加载完成------")
     return train_dataset_loader,test_dataset_loader,cifar10_train_dataset,cifar10_test_dataset
 
@@ -37,12 +37,14 @@ def train():
     test_step = 0   # 测试次数
     lr = 1e-2
     epochs = 10
+    total_accuracy = 0
     loss_func = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(model.parameters(),lr=lr)
     avg_loss_saver = []
     for i in range(epochs):
         print(f"------第{i+1}轮训练开始------")
         epoch_total_loss = 0
+        epoch_accuracy = 0
         count = 0
         epoch_steps = 0
         for data in train_data:
@@ -51,6 +53,7 @@ def train():
             imgs,targets = data
             output = model(imgs)
             loss = loss_func(output,targets)
+            writer.add_scalar("每次训练的loss",loss,train_step)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -69,8 +72,11 @@ def train():
                 imgs,targets = data
                 writer.add_images("测试图片",imgs,test_step)
                 out = model(imgs)
-                test_step += 1
+                each_step_accuracy =  (out.argmax(axis=1)==targets).sum()/len(imgs)
                 test_loss = loss_func(out,targets)
+                writer.add_scalar("每次测试loss",test_loss,test_step)
+                writer.add_scalar("每次测试准确率", each_step_accuracy, test_step)
+                test_step += 1
                 print(f"------第{test_step}次测试，loss:{test_loss}")
                 class_seq = torch.argmax(out,axis=1)
                 print(f"图片真实类别,     预测类别")
